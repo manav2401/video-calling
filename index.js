@@ -18,7 +18,7 @@ app = express();
 httpServer = http.createServer(app);
 
 app.get('/', (req, res) => {
-  res.sendFile('./public/index.html', { root: __dirname });
+  res.sendFile('index.html', { root: __dirname + '/public' });
 })
 
 httpServer.listen(port, () => {
@@ -77,7 +77,8 @@ webSockerServer.on('connection', function(ws) {
 
         msg = {
           type: "video-answer-request",
-          callerId: messageReceived.id
+          callerId: messageReceived.id,
+          offer: messageReceived.offer
         }
         callee.send(JSON.stringify(msg));
 
@@ -109,7 +110,8 @@ webSockerServer.on('connection', function(ws) {
           msg = {
             type: "server-reply",
             reply: messageReceived.reply,
-            calleeId: messageReceived.id
+            calleeId: messageReceived.id,
+            answer: messageReceived.answer
           }
           caller.send(JSON.stringify(msg));
       } else {
