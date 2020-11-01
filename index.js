@@ -22,7 +22,7 @@ app.get('/', (req, res) => {
 })
 
 httpServer.listen(port, () => {
-    console.log('Server listening on http://localhost:' + port);
+  console.log('Server listening on http://localhost:' + port);
 })
 
 webSockerServer = new WebSocket.Server({
@@ -33,7 +33,7 @@ if (!webSockerServer) {
   log('ERROR: Unable to create websocet server');
 }
 
-webSockerServer.on('connection', function(ws) {
+webSockerServer.on('connection', function (ws) {
 
   var connection = {};
   connection.webSocket = ws;
@@ -51,7 +51,7 @@ webSockerServer.on('connection', function(ws) {
   };
   ws.send(JSON.stringify(msg));
 
-  ws.on('message', function(message) {
+  ws.on('message', function (message) {
 
     // parse the message to json
     var messageReceived = JSON.parse(message);
@@ -66,7 +66,7 @@ webSockerServer.on('connection', function(ws) {
       var i;
       var callee = null;
 
-      for (i=0; i<connections.length; i++) {
+      for (i = 0; i < connections.length; i++) {
         if (messageReceived.calleeId === connections[i].clientId) {
           callee = connections[i].webSocket;
           break;
@@ -99,7 +99,7 @@ webSockerServer.on('connection', function(ws) {
       var i;
       var caller = null;
 
-      for (i=0; i<connections.length; i++) {
+      for (i = 0; i < connections.length; i++) {
         if (messageReceived.callerId === connections[i].clientId) {
           caller = connections[i].webSocket;
           break;
@@ -107,31 +107,63 @@ webSockerServer.on('connection', function(ws) {
       }
 
       if (caller) {
-          msg = {
-            type: "server-reply",
-            reply: messageReceived.reply,
-            calleeId: messageReceived.id,
-            answer: messageReceived.answer
-          }
-          caller.send(JSON.stringify(msg));
+        msg = {
+          type: "server-reply",
+          reply: messageReceived.reply,
+          calleeId: messageReceived.id,
+          answer: messageReceived.answer
+        }
+        caller.send(JSON.stringify(msg));
       } else {
-          msg = {
-            type: "error",
-            message: "Caller ID " + messageReceived.callerId + " doesn't exist."
-          }
-          ws.send(JSON.stringify(msg));
+        msg = {
+          type: "error",
+          message: "Caller ID " + messageReceived.callerId + " doesn't exist."
+        }
+        ws.send(JSON.stringify(msg));
       }
 
+
+    }
+
+    if (messageReceived.type === 'close-call-client') {
+
+      var i;
+      var client = null;
+
+      for (i = 0; i < connections.length; i++) {
+        if (messageReceived.clientId === connections[i].clientId) {
+          client = connections[i].webSocket;
+          break;
+        }
+      }
+
+      if (client) {
+
+        msg = {
+          type: 'close-call-server',
+          clientId: messageReceived.id
+        };
+
+        client.send(JSON.stringify(msg));
+
+      } else {
+        // send error message
+        msg = {
+          type: "error",
+          message: "Callee ID " + messageReceived.calleeId + " doesn't exist."
+        }
+        ws.send(JSON.stringify(msg));
+      }
 
     }
 
   })
 
   ws.on('close', () => {
-    
+
     // removing the connection from array
     var i;
-    for (i=0; i<connections.length; i++) {
+    for (i = 0; i < connections.length; i++) {
       if (ws === connections[i].webSocket) {
         log('Client with ID: ' + connections[i].clientId + ' disconnected.');
         connections.splice(i, 1);
@@ -142,18 +174,3 @@ webSockerServer.on('connection', function(ws) {
   })
 
 })
-
-
-
-/*
-wss.on('connection', (ws) => {
-
-    ws.on('close', () => {
-      console.log('[Server]: Client Disconnected');
-    })
-
-    ws.on('message', (message) => {
-      console.log('[Server]: Received Message: %s', message);
-      ws.send('Message Received!');
-    });    
-  });  */
