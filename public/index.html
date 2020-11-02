@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Websocket Demo</title>
+    <title>Video Calling App</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
@@ -9,6 +9,16 @@
       href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,700&display=swap"
       rel="stylesheet"
     />
+    <link
+      href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    />
+
     <!-- <link rel="stylesheet" href="./styles.css" /> -->
     <style>
       .body {
@@ -84,7 +94,7 @@
       .remote-video {
         position: fixed;
         border: 1px solid #cddfe7;
-        top: 180px;
+        top: 230px;
         left: 900px;
         box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
         border-radius: 5px;
@@ -96,7 +106,7 @@
       .local-video {
         position: fixed;
         border: 1px solid #cddfe7;
-        top: 180px;
+        top: 230px;
         left: 100px;
         box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.2);
         border-radius: 5px;
@@ -104,18 +114,44 @@
         /* height: 300px; */
         /* width: 400px; */
       }
+
+      .call-button {
+        padding-left: 20px;
+        padding-bottom: 10px;
+        /* width: 100px; */
+        display: inline-block;
+      }
+
+      .hangup-button {
+        padding-left: 20px;
+        padding-bottom: 10px;
+        /* width: 100px; */
+        display: inline-block;
+      }
     </style>
   </head>
   <body>
     <div class="header" id="header">
       <div class="client-id" id="client-id"></div>
-      <h3>Enter ID of callee to initiate a video call</h3>
+      <h3>Enter User ID of callee to initiate a video call</h3>
       <input type="number" id="callee-id" name="callee-id" />
-      <button onclick="requestCall()">Call</button>
-      <button onclick="endCallEvent()">Hang Up</button>
+      <div class="call-button" id="call-button">
+        <button class="mdc-button mdc-button--raised" onclick="requestCall()">
+          <div class="mdc-button__ripple"></div>
+          <span class="mdc-button__label">Call</span>
+          <div class="mdc-button__touch"></div>
+        </button>
+      </div>
+      <div class="hangup-button" id="hangup-button">
+        <button class="mdc-button mdc-button--raised" onclick="endCallEvent()">
+          <div class="mdc-button__ripple"></div>
+          <span class="mdc-button__label">Hang up</span>
+          <div class="mdc-button__touch"></div>
+        </button>
+      </div>
     </div>
 
-    <div class="container">
+    <div class="container" id="container">
       <!-- <div class="content-container"> -->
       <!-- <div class="video-chat-container"> -->
       <!-- <div class="video-container"> -->
@@ -125,6 +161,8 @@
       <!-- </div> -->
       <!-- </div> -->
     </div>
+
+    <div class="on-call-message" id="on-call-message"></div>
 
     <script>
       const ip = "127.0.0.1";
@@ -148,7 +186,7 @@
         if (myId != null) {
           const idElement = document.getElementById("client-id");
           const newElement = document.createElement("p");
-          newElement.innerHTML = `<h3>Your ID is ${myId}</h3>`;
+          newElement.innerHTML = `<h3>Your User ID is ${myId}</h3>`;
           idElement.appendChild(newElement);
         } else {
           console.warn("Unable to fetch client id.");
@@ -157,6 +195,13 @@
 
       // create the websocket connection
       const socket = new WebSocket("ws://" + ip + ":" + port);
+
+      // hide the video initially
+      const localVideoeElement = document.getElementById("local-video");
+      const remoteVideoElement = document.getElementById("remote-video");
+
+      localVideoeElement.style.visibility = "hidden";
+      remoteVideoElement.style.visibility = "hidden";
 
       // incoming message event listner
       socket.addEventListener("message", async (event) => {
@@ -179,7 +224,7 @@
 
           if (getCalled) {
             // prompt user for accept/reject
-            result = confirm(
+            result = window.confirm(
               "Accept call from client ID: " + messageReceived.callerId + "?"
             );
             result = result ? "1" : "0";
@@ -208,6 +253,14 @@
             // set variables
             getCalled = false;
             clientId = messageReceived.callerId;
+
+            // show video elements
+            localVideoeElement.style.visibility = "visible";
+            remoteVideoElement.style.visibility = "visible";
+
+            // set on call message
+            const onCallMessage = document.getElementById("on-call-message");
+            onCallMessage.innerHTML = `<h3>On call with User ID: ${clientId}</h3>`;
 
             var msg = {
               type: "client-reply",
@@ -238,6 +291,14 @@
             );
 
             clientId = messageReceived.calleeId;
+
+            // show video elements
+            localVideoeElement.style.visibility = "visible";
+            remoteVideoElement.style.visibility = "visible";
+
+            // set on call message
+            const onCallMessage = document.getElementById("on-call-message");
+            onCallMessage.innerHTML = `<h3>On call with User ID: ${clientId}</h3>`;
 
             if (!isAlreadyCalling) {
               makeCall(messageReceived.calleeId);
@@ -303,24 +364,27 @@
         // stop the remote video
         const remoteVideo = document.getElementById("remote-video");
         if (remoteVideo) {
-            remoteVideo.srcObject = null;
+          remoteVideo.srcObject = null;
         }
 
         // update variables
         getCalled = true;
         isAlreadyCalling = false;
 
+        // hide video elements
+        localVideoeElement.style.visibility = "hidden";
+        remoteVideoElement.style.visibility = "hidden";
+
+        // set on call message
+        const onCallMessage = document.getElementById("on-call-message");
+        onCallMessage.innerHTML = `<h3>Disconnected with User ID: ${clientId}</h3>`;
+
         // clear peer connection
         peerConnection.close();
+        peerConnection = null;
         peerConnection = new RTCPeerConnection();
 
-        peerConnection.ontrack = function ({ streams: [stream] }) {
-          const remoteVideo = document.getElementById("remote-video");
-          console.log("remote video.srcObject: " + remoteVideo.srcObject);
-          if (remoteVideo) {
-            remoteVideo.srcObject = stream;
-          }
-        };
+        setStreams();
 
         if (flag == 0) {
           // send message to other client for closing call
@@ -335,32 +399,36 @@
         clientId = null;
       }
 
-      peerConnection.ontrack = function ({ streams: [stream] }) {
-        const remoteVideo = document.getElementById("remote-video");
-        console.log("remote video.srcObject: " + remoteVideo.srcObject);
-        if (remoteVideo) {
+      function setStreams() {
+        peerConnection.ontrack = function ({ streams: [stream] }) {
+          const remoteVideo = document.getElementById("remote-video");
+          console.log("remote video.srcObject: " + remoteVideo.srcObject);
+          if (remoteVideo) {
             remoteVideo.srcObject = stream;
-        }
-      };
-
-      // get audio and video
-      navigator.getUserMedia(
-        { video: true, audio: true },
-        (stream) => {
-          const localVideo = document.getElementById("local-video");
-          if (localVideo) {
-            localVideo.srcObject = stream;
           }
-          console.log('User Media Set.');
+        };
 
-          stream
-            .getTracks()
-            .forEach((track) => peerConnection.addTrack(track, stream));
-        },
-        (error) => {
-          console.warn(error.message);
-        }
-      );
+        // get audio and video
+        navigator.getUserMedia(
+          { video: true, audio: true },
+          (stream) => {
+            const localVideo = document.getElementById("local-video");
+            if (localVideo) {
+              localVideo.srcObject = stream;
+            }
+            console.log("User Media Set.");
+
+            stream
+              .getTracks()
+              .forEach((track) => peerConnection.addTrack(track, stream));
+          },
+          (error) => {
+            console.warn(error.message);
+          }
+        );
+      }
+
+      setStreams();
     </script>
   </body>
 </html>
