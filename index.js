@@ -57,6 +57,7 @@ webSockerServer.on('connection', function (ws) {
   var connection = {};
   connection.webSocket = ws;
   connection.clientId = clientId;
+  connection.status = 'available';
   log('Client connected. ID: ' + clientId);
   clientId++;
 
@@ -87,17 +88,28 @@ webSockerServer.on('connection', function (ws) {
 
       var i;
       var callee = null;
+      var isAvailable = true;
 
       // find the corresponding callee from the array
       for (i = 0; i < connections.length; i++) {
         if (messageReceived.calleeId === connections[i].clientId) {
+
           callee = connections[i].webSocket;
+
+          // check availability only for 1st iteration
+          if (Number(messageReceived.iteration) === Number(1)) {
+            if (connections[i].status === 'busy') {
+              isAvailable = false;
+            }
+          }
+
           break;
         }
       }
 
-      if (callee) {
+      if (isAvailable == true && callee != null) {
 
+        // client is available
         // send the message to corresponding callee
         msg = {
           type: "video-answer-request",
@@ -106,15 +118,25 @@ webSockerServer.on('connection', function (ws) {
         }
         callee.send(JSON.stringify(msg));
 
+      } else if (isAvailable == false && callee != null) {
+
+        // client is busy
+        msg = {
+          type: "client-busy",
+          message: "client is busy.",
+          calleeId: messageReceived.calleeId
+        }
+        ws.send(JSON.stringify(msg));
+
       } else {
 
         // send error message
         msg = {
-          type: "error",
+          type: "non-existing-client",
+          calleeId: messageReceived.calleeId,
           message: "Callee ID " + messageReceived.calleeId + " doesn't exist."
         }
         ws.send(JSON.stringify(msg));
-
       }
 
     }
@@ -129,11 +151,25 @@ webSockerServer.on('connection', function (ws) {
       for (i = 0; i < connections.length; i++) {
         if (messageReceived.callerId === connections[i].clientId) {
           caller = connections[i].webSocket;
+          if (messageReceived.reply === "1") {
+            connections[i].status = 'busy';   // set availability status of caller
+          }
           break;
         }
       }
 
       if (caller) {
+
+        // set availability status of callee
+
+        if (messageReceived.reply === "1") {
+          for (i = 0; connections.length; i++) {
+            if (messageReceived.id === connections[i].clientId) {
+              connections[i].status = 'busy';
+              break;
+            }
+          }
+        }
 
         // sends the response to the corresponding caller
         msg = {
@@ -166,6 +202,15 @@ webSockerServer.on('connection', function (ws) {
       for (i = 0; i < connections.length; i++) {
         if (messageReceived.clientId === connections[i].clientId) {
           client = connections[i].webSocket;
+          connections[i].status = 'available';    // set the connection status to available
+          break;
+        }
+      }
+
+      // set available status for current client
+      for (i = 0; i < connections.length; i++) {
+        if (messageReceived.id === connections[i].clientId) {
+          connections[i].status = 'available';
           break;
         }
       }

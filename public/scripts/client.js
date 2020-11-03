@@ -65,13 +65,14 @@ function requestCall() {
     // empty string
     log("entered empty string!");
   } else {
-    makeCall(calleeId);
+    const iteration = 1;
+    makeCall(calleeId, iteration);
   }
 
 };
 
 // function for initiating the call
-async function makeCall(clientId) {
+async function makeCall(clientId, iteration) {
 
   // create offer and sending to corresponding client
   clientId = Number(clientId);
@@ -85,6 +86,7 @@ async function makeCall(clientId) {
     type: "video-offer-request",
     id: myId,
     calleeId: clientId,
+    iteration: iteration,
     offer: offer,
   };
   socket.send(JSON.stringify(msg));
@@ -216,6 +218,11 @@ socket.addEventListener("message", async (event) => {
           answer: null,
         };
         socket.send(JSON.stringify(msg));
+
+        // set the rejection message
+        const onCallMessage = document.getElementById("on-call-message");
+        onCallMessage.innerHTML = `<h3>Call from User ID: ${messageReceived.callerId} rejected.</h3>`;
+
       }
     }
 
@@ -282,7 +289,8 @@ socket.addEventListener("message", async (event) => {
       onCallMessage.innerHTML = `<h3>On call with User ID: ${clientId}</h3>`;
 
       if (!isAlreadyCalling) {
-        makeCall(messageReceived.calleeId);
+        const iteration = 2;
+        makeCall(messageReceived.calleeId, iteration);
         isAlreadyCalling = true;
       }
 
@@ -292,6 +300,14 @@ socket.addEventListener("message", async (event) => {
         messageReceived.calleeId +
         " rejected your call."
       );
+
+      // set the message
+      const onCallMessage = document.getElementById("on-call-message");
+      onCallMessage.innerHTML = `<h3>Call rejected by User ID: ${messageReceived.calleeId}.</h3>`;
+
+      // clear client id
+      clientId = null;
+
     }
   }
 
@@ -300,6 +316,33 @@ socket.addEventListener("message", async (event) => {
     // flag = 1
     endCall(1);
   }
+
+  // message when client is busy
+  if (messageReceived.type === 'client-busy') {
+    log('user with ID ' + messageReceived.calleeId + ' is busy.');
+
+    // set the message
+    const onCallMessage = document.getElementById("on-call-message");
+    onCallMessage.innerHTML = `<h3>User ID: ${messageReceived.calleeId} is busy on another call. Please try later.</h3>`;
+
+    // clear client id
+    clientId = null;
+
+  }
+
+  // non existing client
+  if (messageReceived.type === 'non-existing-client') {
+    log('user with ID ' + messageReceived.calleeId + ' does not exist.');
+
+    // set the message
+    const onCallMessage = document.getElementById("on-call-message");
+    onCallMessage.innerHTML = `<h3>User ID: ${messageReceived.calleeId} has either disconnected or does not exist.</h3>`;
+
+    // clear client id
+    clientId = null;
+
+  }
+
 
 });
 
