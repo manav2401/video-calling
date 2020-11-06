@@ -1,5 +1,5 @@
 // defining the host and port of server
-const hostname = "localhost";
+const hostname = "localhost";   // IP / DNS if running on different host
 const port = "5000";
 
 // client side variables
@@ -14,7 +14,12 @@ const { RTCPeerConnection, RTCSessionDescription } = window;
 var peerConnection = new RTCPeerConnection();
 
 // create the websocket connection
+// for running locally
 const socket = new WebSocket("ws://" + hostname + ":" + port);
+
+// for running on different host -> configure a webserver 
+// config file given as video-calling-app.conf
+// const socket = new WebSocket("ws://" + hostname + ":80/socket");
 
 // get the elements for local and remote video elements
 const localVideoeElement = document.getElementById("local-video");
@@ -145,7 +150,7 @@ async function endCall(flag) {
 }
 
 // sets the remote and local stream on client side
-function setStreams() {
+async function setStreams() {
 
   // on track listner, runs when track is obtained from peer
   // stores the stream in source object of HTML element  
@@ -157,26 +162,25 @@ function setStreams() {
   };
 
   // get audio and video for local stream
-  navigator.getUserMedia(
-    { video: true, audio: true },
-    (stream) => {
 
-      // set the local stream
-      const localVideo = document.getElementById("local-video");
-      if (localVideo) {
-        localVideo.srcObject = stream;
-      }
-      console.log("User Media Set.");
+  var stream = await navigator.mediaDevices.getUserMedia({
+    video: true,
+    audio: true
+  });
 
-      // add the tracks to the peer connection for stream transfer
-      stream
-        .getTracks()
-        .forEach((track) => peerConnection.addTrack(track, stream));
-    },
-    (error) => {
-      console.warn(error.message);
-    }
-  );
+  // set the local stream
+  const localVideo = document.getElementById("local-video");
+  if (localVideo) {
+    localVideo.srcObject = stream;
+  }
+  console.log("User Media Set.");
+
+  // add the tracks to the peer connection for stream transfer
+  stream
+    .getTracks()
+    .forEach((track) => peerConnection.addTrack(track, stream));
+
+
 }
 
 // incoming message event listner
