@@ -118,12 +118,12 @@ For project to build, these files must exist with exact filenames:
 2. Install nginx web proxy server using ```sudo apt update``` and ```sudo apt install nginx```. More details about nginx webserver can be found [here](https://docs.nginx.com/nginx/admin-guide/web-server/).
 3. Adjusting the firewall using ```ufw``` utility. More details about ufw can be found [here](https://help.ubuntu.com/community/UFW).
     - ```sudo ufw app list```
-    - Output
+    - Output<br>
         Available Applications:
-            Nginx Full
-            Nginx HTTP
-            Nginx HTTPS
-            OpenSSH
+        - Nginx Full
+        - Nginx HTTP
+        - Nginx HTTPS
+        - OpenSSH
     - If you've your SSL configured, enable Nginx HTTPS else enable Nginx HTTP
     - ```sudo ufw allow 'Nginx HTTP'```
     - ```sudo ufw allow 'OpenSSH'```
